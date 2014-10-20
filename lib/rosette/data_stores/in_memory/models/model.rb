@@ -19,6 +19,8 @@ module Rosette
             new_model
           end
 
+          alias :create :from_h
+
           def each(&block)
             entries.each(&block)
           end
