@@ -13,7 +13,7 @@ module Rosette
 
           include Enumerable
 
-          def create(attributes)
+          def create(attributes = {})
             new_model = new(attributes)
             entries << new_model
             new_model
@@ -31,7 +31,7 @@ module Rosette
 
         end
 
-        def initialize(attributes)
+        def initialize(attributes = {})
           @attributes = attributes
         end
 
@@ -47,9 +47,9 @@ module Rosette
           attributes.merge!(new_attrs)
         end
 
-        def respond_to?(method)
-          attributes.include?(method)
-        end
+        # def respond_to?(method)
+        #   attributes.include?(method)
+        # end
       end
 
     end

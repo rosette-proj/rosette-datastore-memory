@@ -16,6 +16,28 @@ module Rosette
         @entries ||= Hash.new { |h, key| h[key] = [] }
       end
 
+      def store_phrase(repo_name, phrase)
+        phrase_entry = Phrase.find do |entry|
+          entry.repo_name == repo_name &&
+            entry.key == phrase.key &&
+            entry.meta_key == phrase.meta_key &&
+            entry.file == phrase.file &&
+            entry.commit_id == phrase.commit_id &&
+            entry.author_name == phrase.author_name &&
+            entry.author_email == phrase.author_email
+        end
+
+        phrase_entry ||= Phrase.create(
+          repo_name: repo_name,
+          key: phrase.key,
+          meta_key: phrase.meta_key,
+          file: phrase.file,
+          commit_id: phrase.commit_id,
+          author_name: phrase.author_name,
+          author_email: phrase.author_email
+        )
+      end
+
       def phrases_by_commit(repo_name, commit_id, file = nil)
         Phrase.select do |phrase|
           matches = phrase.repo_name == repo_name &&
@@ -23,6 +45,78 @@ module Rosette
 
           matches &&= phrase.file == file if file
           matches
+        end
+      end
+
+      def phrases_by_commits(repo_name, commit_id_map)
+        if block_given?
+          if commit_id_map.is_a?(Array)
+            phrases = Phrase.select do |phrase|
+              commit_id_map.include?(phrase.commit_id)
+            end
+
+            phrases.each { |phrase| yield phrase }
+          else
+            commit_ids = commit_id_map.values
+            phrases = Phrase.select do |phrase|
+              commit_ids.include?(phrase.commit_id)
+            end
+
+            phrases.each { |phrase| yield phrase }
+          end
+        else
+          to_enum(__method__, repo_name, commit_id_map)
+        end
+      end
+
+      def lookup_phrase(repo_name, key, meta_key, commit_id)
+        Phrase.lookup(key, meta_key).select do |entry|
+          entry.commit_id == commit_id &&
+            entry.repo_name == repo_name
+        end.first
+      end
+
+      def add_or_update_translation(repo_name, params = {})
+        required_params = [
+          Phrase.index_key(params[:key], params[:meta_key]), :commit_id, :translation, :locale
+        ]
+
+        missing_params = required_params - params.keys
+
+        if missing_params.size > 0
+          raise Rosette::DataStores::Errors::MissingParamError,
+            "missing params: #{missing_params.join(', ')}"
+        end
+
+        phrase = lookup_phrase(
+          repo_name, params[:key], params[:meta_key], params[:commit_id]
+        )
+        binding.pry
+
+        if phrase
+          params = Translation
+            .extract_params_from(params)
+            .merge(phrase_id: phrase.id)
+
+          find_params = params.dup
+          find_params.delete(:translation)
+
+          translations = Translation.select do |entry|
+            param_matches = find_params.map do |(key, value)|
+              entry.key == entry.value
+            end
+            param_matches.all?(true)
+          end
+          translations << Translation.new if translations.size == 0
+
+          translations.each do |t|
+            t.merge_attributes(params)
+          end
+        else
+          raise(
+            Rosette::DataStores::Errors::PhraseNotFoundError,
+            "couldn't find phrase identified by key '#{params[:key]}' and meta key '#{params[:meta_key]}'"
+          )
         end
       end
 
@@ -62,6 +156,35 @@ module Rosette
         unless commit_log_locale_entry.valid?
           raise Rosette::DataStores::Errors::CommitLogLocaleUpdateError,
             "Unable to update commit log locale #{commit_id} #{locale}: #{commit_log_locale_entry.errors.full_messages.first}"
+        end
+      end
+
+      def commit_log_status(repo_name, commit_id)
+        commit_log_entry = CommitLog.find do |entry|
+          entry.repo_name == repo_name &&
+            entry.commit_id == commit_id
+        end
+
+        if commit_log_entry
+          phrase_count = commit_log_entry.phrase_count.to_i
+
+          locales = commit_log_entry.commit_log_locales.map do |log_locale|
+            translated_count = log_locale.translated_count.to_i
+
+            {
+              locale: log_locale.locale,
+              percent_translated: percentage(translated_count, phrase_count),
+              translated_count: translated_count
+
+            }
+          end
+
+          {
+            commit_id: commit_id,
+            status: commit_log_entry.status,
+            phrase_count: phrase_count,
+            locales: locales
+          }
         end
       end
     end

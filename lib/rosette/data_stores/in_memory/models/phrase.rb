@@ -12,8 +12,28 @@ module Rosette
         validates :key, presence: true
         validates :file, presence: true
         validates :commit_id, presence: true
-      end
 
+        class << self
+
+          @@id = 0
+
+          def lookup(key, meta_key)
+            ikey = index_key(key, meta_key)
+            ivalue = index_value(key, meta_key)
+            select do |entry|
+              entry.send(ikey) == ivalue
+            end
+          end
+
+          def create(attributes)
+            super(attributes.merge( { id: id_increment } ))
+          end
+
+          def id_increment
+            @@id += 1
+          end
+        end
+      end
     end
   end
 end

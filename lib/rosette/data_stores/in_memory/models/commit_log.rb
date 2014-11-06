@@ -9,6 +9,12 @@ module Rosette
 
         validates :commit_id, presence: true
         validates :status, inclusion: { in: STATUSES }
+
+        def commit_log_locales
+          CommitLogLocale.select do |entry|
+            entry.commit_id == commit_id
+          end
+        end
       end
 
     end
