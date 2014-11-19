@@ -103,11 +103,11 @@ module Rosette
 
           translations = Translation.select do |entry|
             param_matches = find_params.map do |(key, value)|
-              entry.key == entry.value
+              entry.send(key) == value
             end
-            param_matches.all?(true)
+            param_matches.all? { |bool| bool }
           end
-          translations << Translation.new if translations.size == 0
+          translations << Translation.create if translations.size == 0
 
           translations.each do |t|
             t.merge_attributes(params)
