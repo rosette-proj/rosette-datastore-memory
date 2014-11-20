@@ -15,6 +15,10 @@ module Rosette
             entry.commit_id == commit_id
           end
         end
+
+        def phrase_count
+          respond_to?(:phrase_count) ? phrase_count : 0
+        end
       end
 
     end
