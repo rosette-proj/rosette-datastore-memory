@@ -91,7 +91,6 @@ module Rosette
         phrase = lookup_phrase(
           repo_name, params[:key], params[:meta_key], params[:commit_id]
         )
-        binding.pry
 
         if phrase
           params = Translation
