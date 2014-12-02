@@ -17,7 +17,7 @@ module Rosette
         end
 
         def phrase_count
-          respond_to?(:phrase_count) ? phrase_count : 0
+          attributes[:phrase_count] || 0
         end
       end
 
