@@ -33,6 +33,12 @@ module Rosette
             @@id += 1
           end
         end
+
+        def translations
+          Translation.select do |entry|
+            entry.commit_id == commit_id
+          end
+        end
       end
     end
   end
