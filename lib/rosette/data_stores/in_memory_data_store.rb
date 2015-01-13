@@ -147,7 +147,7 @@ module Rosette
         end
 
         commit_log_locale_entry ||= CommitLogLocale.create(
-          cmomit_id: commit_id, locale: locale
+          commit_id: commit_id, locale: locale
         )
 
         commit_log_locale_entry.merge_attributes(
