@@ -78,7 +78,8 @@ module Rosette
 
       def add_or_update_translation(repo_name, params = {})
         required_params = [
-          Phrase.index_key(params[:key], params[:meta_key]), :commit_id, :translation, :locale
+          Phrase.index_key(params[:key], params[:meta_key]),
+          :commit_id, :translation, :locale
         ]
 
         missing_params = required_params - params.keys
@@ -91,7 +92,6 @@ module Rosette
         phrase = lookup_phrase(
           repo_name, params[:key], params[:meta_key], params[:commit_id]
         )
-        binding.pry
 
         if phrase
           params = Translation
@@ -112,6 +112,8 @@ module Rosette
           translations.each do |t|
             t.merge_attributes(params)
           end
+
+          nil
         else
           raise(
             Rosette::DataStores::Errors::PhraseNotFoundError,
