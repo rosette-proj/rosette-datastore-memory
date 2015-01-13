@@ -176,7 +176,6 @@ module Rosette
               locale: log_locale.locale,
               percent_translated: percentage(translated_count, phrase_count),
               translated_count: translated_count
-
             }
           end
 
@@ -193,6 +192,16 @@ module Rosette
         !!CommitLog.find do |entry|
           entry.repo_name == repo_name &&
             entry.commit_id == commit_id
+        end
+      end
+
+      protected
+
+      def percentage(dividend, divisor)
+        if divisor > 0
+          (dividend.to_f / divisor.to_f).round(2)
+        else
+          0.0
         end
       end
     end
