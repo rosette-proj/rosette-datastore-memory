@@ -57,9 +57,9 @@ module Rosette
 
             phrases.each { |phrase| yield phrase }
           else
-            commit_ids = commit_id_map.values
             phrases = Phrase.select do |phrase|
-              commit_ids.include?(phrase.commit_id)
+              commit_id_map[phrase.file] &&
+                commit_id_map[phrase.file] == phrase.commit_id
             end
 
             phrases.each { |phrase| yield phrase }
@@ -186,6 +186,13 @@ module Rosette
             phrase_count: phrase_count,
             locales: locales
           }
+        end
+      end
+
+      def commit_log_exists?(repo_name, commit_id)
+        !!CommitLog.find do |entry|
+          entry.repo_name == repo_name &&
+            entry.commit_id == commit_id
         end
       end
     end
