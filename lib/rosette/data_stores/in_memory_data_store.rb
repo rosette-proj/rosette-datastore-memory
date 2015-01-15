@@ -70,8 +70,10 @@ module Rosette
       end
 
       def lookup_phrase(repo_name, key, meta_key, commit_id)
+        commit_ids = Array(commit_id)
+
         Phrase.lookup(key, meta_key).select do |entry|
-          entry.commit_id == commit_id &&
+          commit_ids.include?(entry.commit_id) &&
             entry.repo_name == repo_name
         end.first
       end
