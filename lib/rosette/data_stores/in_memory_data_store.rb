@@ -144,6 +144,25 @@ module Rosette
         end
       end
 
+      def each_pending_commit_log(repo_name, &blk)
+        if block_given?
+          CommitLog.select do |entry|
+            entry.status == Rosette::DataStores::PhraseStatus::PENDING &&
+              entry.repo_name == repo_name
+          end.each(&blk)
+
+        else
+          to_enum(__method__, repo_name)
+        end
+      end
+
+      def pending_commit_log_count(repo_name)
+        CommitLog.select do |entry|
+          entry.status == Rosette::DataStores::PhraseStatus::PENDING &&
+            entry.repo_name == repo_name
+        end.count
+      end
+
       def add_or_update_commit_log_locale(commit_id, locale, translated_count)
         commit_log_locale_entry = CommitLogLocale.find do |entry|
           entry.commit_id == commit_id &&
