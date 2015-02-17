@@ -144,10 +144,10 @@ module Rosette
         end
       end
 
-      def each_pending_commit_log(repo_name, &blk)
+      def each_commit_log_with_status(repo_name, status, &blk)
         if block_given?
           CommitLog.select do |entry|
-            entry.status == Rosette::DataStores::PhraseStatus::PENDING &&
+            entry.status == status &&
               entry.repo_name == repo_name
           end.each(&blk)
 
@@ -156,9 +156,9 @@ module Rosette
         end
       end
 
-      def pending_commit_log_count(repo_name)
+      def commit_log_with_status_count(repo_name, status)
         CommitLog.select do |entry|
-          entry.status == Rosette::DataStores::PhraseStatus::PENDING &&
+          entry.status == status &&
             entry.repo_name == repo_name
         end.count
       end
