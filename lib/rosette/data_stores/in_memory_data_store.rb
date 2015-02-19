@@ -218,6 +218,27 @@ module Rosette
         end
       end
 
+      def each_unique_meta_key(repo_name)
+        if block_given?
+          Phrase
+            .select { |phrase| phrase.repo_name == repo_name }
+            .uniq { |p| p.meta_key }
+        else
+          to_enum(__method__, repo_name)
+        end
+      end
+
+      def most_recent_key_for_meta_key(repo_name, meta_key)
+        Phrase
+          .select do |phrase|
+            phrase.repo_name == repo_name && phrase.meta_key == meta_key
+          end
+          .sort do |p1, p2|
+            p2.commit_datetime <=> p1.commit_datetime
+          end
+          .first
+      end
+
       protected
 
       def percentage(dividend, divisor)
