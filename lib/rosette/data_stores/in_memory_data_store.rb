@@ -152,7 +152,7 @@ module Rosette
           end.each(&blk)
 
         else
-          to_enum(__method__, repo_name)
+          to_enum(__method__, repo_name, status)
         end
       end
 
