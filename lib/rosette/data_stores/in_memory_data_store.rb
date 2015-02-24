@@ -146,19 +146,21 @@ module Rosette
 
       def each_commit_log_with_status(repo_name, status, &blk)
         if block_given?
+          statuses = Array(status)
+
           CommitLog.select do |entry|
-            entry.status == status &&
+            statuses.include?(entry.status) &&
               entry.repo_name == repo_name
           end.each(&blk)
-
         else
           to_enum(__method__, repo_name, status)
         end
       end
 
       def commit_log_with_status_count(repo_name, status)
+        statuses = Array(status)
         CommitLog.select do |entry|
-          entry.status == status &&
+          statuses.include?(entry.status) &&
             entry.repo_name == repo_name
         end.count
       end
