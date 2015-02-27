@@ -69,6 +69,23 @@ module Rosette
         end
       end
 
+      def translations_by_commits(repo_name, locale, commit_id_map)
+        if block_given?
+          Translation.each do |trans|
+            found = trans.locale == locale &&
+              commit_id_map.any? do |file, commit_id|
+                trans.phrase.file == file &&
+                  trans.phrase.commit_id == commit_id &&
+                  trans.phrase.repo_name == repo_name
+              end
+
+            yield trans if found
+          end
+        else
+          to_enum(__method__, repo_name, locale, commit_id_map)
+        end
+      end
+
       def lookup_phrase(repo_name, key, meta_key, commit_id)
         commit_ids = Array(commit_id)
 
@@ -131,7 +148,7 @@ module Rosette
         end
 
         log_entry ||= CommitLog.create(
-          repo_name: repo_name, commit_id: commit_id
+          repo_name: repo_name, commit_id: commit_id, status: nil
         )
 
         log_entry.merge_attributes(status: status)
@@ -185,32 +202,13 @@ module Rosette
         end
       end
 
-      def commit_log_status(repo_name, commit_id)
-        commit_log_entry = CommitLog.find do |entry|
+      def commit_log_locales_for(repo_name, commit_id)
+        entry = CommitLog.find do |entry|
           entry.repo_name == repo_name &&
             entry.commit_id == commit_id
         end
 
-        if commit_log_entry
-          phrase_count = commit_log_entry.phrase_count.to_i
-
-          locales = commit_log_entry.commit_log_locales.map do |log_locale|
-            translated_count = log_locale.translated_count.to_i
-
-            {
-              locale: log_locale.locale,
-              percent_translated: percentage(translated_count, phrase_count),
-              translated_count: translated_count
-            }
-          end
-
-          {
-            commit_id: commit_id,
-            status: commit_log_entry.status,
-            phrase_count: phrase_count,
-            locales: locales
-          }
-        end
+        entry.commit_log_locales
       end
 
       def commit_log_exists?(repo_name, commit_id)

@@ -35,9 +35,16 @@ module Rosette
           @attributes = attributes
         end
 
-        def method_missing(method)
+        def method_missing(method, *args, &block)
+          setter = method.to_s.end_with?('=')
+          method = method.to_s.chomp('=').to_sym
+
           if attributes.include?(method)
-            attributes[method]
+            if setter
+              attributes[method] = args.first
+            else
+              attributes[method]
+            end
           else
             raise NoMethodError, "no method #{method} for #{self.class.name}"
           end

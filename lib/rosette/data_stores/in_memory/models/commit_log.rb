@@ -5,6 +5,8 @@ module Rosette
     class InMemoryDataStore
 
       class CommitLog < Model
+        include Rosette::Core::CommitLogStatus
+
         STATUSES = Rosette::DataStores::PhraseStatus.constants.map(&:to_s)
 
         validates :commit_id, presence: true
