@@ -32,6 +32,7 @@ module Rosette
         end
 
         def initialize(attributes = {})
+          @attributes = {}
           merge_attributes(attributes)
         end
 
