@@ -32,31 +32,29 @@ module Rosette
         end
 
         def initialize(attributes = {})
-          @attributes = attributes
+          merge_attributes(attributes)
         end
 
         def method_missing(method, *args, &block)
           setter = method.to_s.end_with?('=')
           method = method.to_s.chomp('=').to_sym
 
-          if attributes.include?(method)
-            if setter
-              attributes[method] = args.first
-            else
-              attributes[method]
-            end
+          if setter
+            attributes[method] = args.first
           else
-            raise NoMethodError, "no method #{method} for #{self.class.name}"
+            if attributes.include?(method)
+              attributes[method]
+            else
+              raise NoMethodError, "no method #{method} for #{self.class.name}"
+            end
           end
         end
 
         def merge_attributes(new_attrs)
-          attributes.merge!(new_attrs)
+          new_attrs.each_pair do |key, value|
+            send("#{key}=", value)
+          end
         end
-
-        # def respond_to?(method)
-        #   attributes.include?(method)
-        # end
       end
 
     end
