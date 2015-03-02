@@ -17,6 +17,20 @@ module Rosette
             entry.commit_id == commit_id
           end
         end
+
+        def status=(new_status)
+          super
+
+          if new_status
+            aasm.set_current_state_with_persistence(
+              new_status.to_sym
+            )
+          end
+        end
+
+        def status
+          aasm.current_state.to_s
+        end
       end
 
     end
