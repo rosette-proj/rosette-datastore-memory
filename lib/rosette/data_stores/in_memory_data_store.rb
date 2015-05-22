@@ -95,6 +95,12 @@ module Rosette
         end.first
       end
 
+      def lookup_commit_log(repo_name, commit_id)
+        CommitLog.find do |entry|
+          entry.repo_name == repo_name && entry.commit_id == commit_id
+        end
+      end
+
       def add_or_update_translation(repo_name, params = {})
         required_params = [
           Phrase.index_key(params[:key], params[:meta_key]),
