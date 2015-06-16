@@ -147,7 +147,7 @@ module Rosette
         end
       end
 
-      def add_or_update_commit_log(repo_name, commit_id, commit_datetime = nil, status = Rosette::DataStores::PhraseStatus::UNTRANSLATED, phrase_count = nil)
+      def add_or_update_commit_log(repo_name, commit_id, commit_datetime = nil, status = Rosette::DataStores::PhraseStatus::NOT_SEEN, phrase_count = nil)
         log_entry = CommitLog.find do |entry|
           entry.repo_name == repo_name &&
             entry.commit_id == commit_id
