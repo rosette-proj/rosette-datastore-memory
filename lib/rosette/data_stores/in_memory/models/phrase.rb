@@ -33,6 +33,12 @@ module Rosette
             @@id += 1
           end
         end
+
+        def translations
+          Translation.select do |entry|
+            entry.phrase_id == id
+          end
+        end
       end
     end
   end

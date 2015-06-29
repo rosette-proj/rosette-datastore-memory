@@ -12,6 +12,12 @@ module Rosette
         validates :phrase_id, presence: true
         validates :locale, presence: true
 
+        def phrase
+          Phrase.find do |phrase|
+            phrase_id == phrase.id
+          end
+        end
+
       end
     end
   end

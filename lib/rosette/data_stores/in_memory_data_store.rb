@@ -57,9 +57,9 @@ module Rosette
 
             phrases.each { |phrase| yield phrase }
           else
-            commit_ids = commit_id_map.values
             phrases = Phrase.select do |phrase|
-              commit_ids.include?(phrase.commit_id)
+              commit_id_map[phrase.file] &&
+                commit_id_map[phrase.file] == phrase.commit_id
             end
 
             phrases.each { |phrase| yield phrase }
@@ -69,16 +69,42 @@ module Rosette
         end
       end
 
+      def translations_by_commits(repo_name, locale, commit_id_map)
+        if block_given?
+          Translation.each do |trans|
+            found = trans.locale == locale &&
+              commit_id_map.any? do |file, commit_id|
+                trans.phrase.file == file &&
+                  trans.phrase.commit_id == commit_id &&
+                  trans.phrase.repo_name == repo_name
+              end
+
+            yield trans if found
+          end
+        else
+          to_enum(__method__, repo_name, locale, commit_id_map)
+        end
+      end
+
       def lookup_phrase(repo_name, key, meta_key, commit_id)
+        commit_ids = Array(commit_id)
+
         Phrase.lookup(key, meta_key).select do |entry|
-          entry.commit_id == commit_id &&
+          commit_ids.include?(entry.commit_id) &&
             entry.repo_name == repo_name
         end.first
       end
 
+      def lookup_commit_log(repo_name, commit_id)
+        CommitLog.find do |entry|
+          entry.repo_name == repo_name && entry.commit_id == commit_id
+        end
+      end
+
       def add_or_update_translation(repo_name, params = {})
         required_params = [
-          Phrase.index_key(params[:key], params[:meta_key]), :commit_id, :translation, :locale
+          Phrase.index_key(params[:key], params[:meta_key]),
+          :commit_id, :translation, :locale
         ]
 
         missing_params = required_params - params.keys
@@ -111,6 +137,8 @@ module Rosette
           translations.each do |t|
             t.merge_attributes(params)
           end
+
+          nil
         else
           raise(
             Rosette::DataStores::Errors::PhraseNotFoundError,
@@ -119,14 +147,14 @@ module Rosette
         end
       end
 
-      def add_or_update_commit_log(repo_name, commit_id, commit_datetime = nil, status = Rosette::DataStores::PhraseStatus::UNTRANSLATED, phrase_count = nil)
+      def add_or_update_commit_log(repo_name, commit_id, commit_datetime = nil, status = Rosette::DataStores::PhraseStatus::NOT_SEEN, phrase_count = nil)
         log_entry = CommitLog.find do |entry|
           entry.repo_name == repo_name &&
             entry.commit_id == commit_id
         end
 
         log_entry ||= CommitLog.create(
-          repo_name: repo_name, commit_id: commit_id
+          repo_name: repo_name, commit_id: commit_id, status: nil
         )
 
         log_entry.merge_attributes(status: status)
@@ -139,6 +167,27 @@ module Rosette
         end
       end
 
+      def each_commit_log_with_status(repo_name, status, &blk)
+        if block_given?
+          statuses = Array(status)
+
+          CommitLog.select do |entry|
+            statuses.include?(entry.status) &&
+              entry.repo_name == repo_name
+          end.each(&blk)
+        else
+          to_enum(__method__, repo_name, status)
+        end
+      end
+
+      def commit_log_with_status_count(repo_name, status)
+        statuses = Array(status)
+        CommitLog.select do |entry|
+          statuses.include?(entry.status) &&
+            entry.repo_name == repo_name
+        end.count
+      end
+
       def add_or_update_commit_log_locale(commit_id, locale, translated_count)
         commit_log_locale_entry = CommitLogLocale.find do |entry|
           entry.commit_id == commit_id &&
@@ -146,7 +195,7 @@ module Rosette
         end
 
         commit_log_locale_entry ||= CommitLogLocale.create(
-          cmomit_id: commit_id, locale: locale
+          commit_id: commit_id, locale: locale
         )
 
         commit_log_locale_entry.merge_attributes(
@@ -159,32 +208,50 @@ module Rosette
         end
       end
 
-      def commit_log_status(repo_name, commit_id)
-        commit_log_entry = CommitLog.find do |entry|
+      def commit_log_locales_for(repo_name, commit_id)
+        entry = CommitLog.find do |entry|
           entry.repo_name == repo_name &&
             entry.commit_id == commit_id
         end
 
-        if commit_log_entry
-          phrase_count = commit_log_entry.phrase_count.to_i
+        entry.commit_log_locales
+      end
 
-          locales = commit_log_entry.commit_log_locales.map do |log_locale|
-            translated_count = log_locale.translated_count.to_i
+      def commit_log_exists?(repo_name, commit_id)
+        !!CommitLog.find do |entry|
+          entry.repo_name == repo_name &&
+            entry.commit_id == commit_id
+        end
+      end
 
-            {
-              locale: log_locale.locale,
-              percent_translated: percentage(translated_count, phrase_count),
-              translated_count: translated_count
+      def each_unique_meta_key(repo_name)
+        if block_given?
+          Phrase
+            .select { |phrase| phrase.repo_name == repo_name }
+            .uniq { |p| p.meta_key }
+        else
+          to_enum(__method__, repo_name)
+        end
+      end
 
-            }
+      def most_recent_key_for_meta_key(repo_name, meta_key)
+        Phrase
+          .select do |phrase|
+            phrase.repo_name == repo_name && phrase.meta_key == meta_key
           end
+          .sort do |p1, p2|
+            p2.commit_datetime <=> p1.commit_datetime
+          end
+          .first
+      end
 
-          {
-            commit_id: commit_id,
-            status: commit_log_entry.status,
-            phrase_count: phrase_count,
-            locales: locales
-          }
+      protected
+
+      def percentage(dividend, divisor)
+        if divisor > 0
+          (dividend.to_f / divisor.to_f).round(2)
+        else
+          0.0
         end
       end
     end
