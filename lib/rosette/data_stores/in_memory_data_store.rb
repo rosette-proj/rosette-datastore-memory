@@ -84,8 +84,7 @@ module Rosette
         end
       end
 
-
-      def add_or_update_commit_log(repo_name, commit_id, commit_datetime = nil, status = Rosette::DataStores::PhraseStatus::NOT_SEEN, phrase_count = nil)
+      def add_or_update_commit_log(repo_name, commit_id, commit_datetime = nil, status = Rosette::DataStores::PhraseStatus::NOT_SEEN, phrase_count = nil, branch_name = nil)
         log_entry = CommitLog.find do |entry|
           entry.repo_name == repo_name &&
             entry.commit_id == commit_id
@@ -98,6 +97,7 @@ module Rosette
         log_entry.merge_attributes(status: status)
         log_entry.merge_attributes(phrase_count: phrase_count) if phrase_count
         log_entry.merge_attributes(commit_datetime: commit_datetime) if commit_datetime
+        log_entry.merge_attributes(branch_name: branch_name) if branch_name
 
         unless log_entry.valid?
           raise Rosette::DataStores::Errors::CommitLogUpdateError,
