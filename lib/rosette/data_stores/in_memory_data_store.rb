@@ -69,23 +69,6 @@ module Rosette
         end
       end
 
-      def translations_by_commits(repo_name, locale, commit_id_map)
-        if block_given?
-          Translation.each do |trans|
-            found = trans.locale == locale &&
-              commit_id_map.any? do |file, commit_id|
-                trans.phrase.file == file &&
-                  trans.phrase.commit_id == commit_id &&
-                  trans.phrase.repo_name == repo_name
-              end
-
-            yield trans if found
-          end
-        else
-          to_enum(__method__, repo_name, locale, commit_id_map)
-        end
-      end
-
       def lookup_phrase(repo_name, key, meta_key, commit_id)
         commit_ids = Array(commit_id)
 
@@ -101,51 +84,6 @@ module Rosette
         end
       end
 
-      def add_or_update_translation(repo_name, params = {})
-        required_params = [
-          Phrase.index_key(params[:key], params[:meta_key]),
-          :commit_id, :translation, :locale
-        ]
-
-        missing_params = required_params - params.keys
-
-        if missing_params.size > 0
-          raise Rosette::DataStores::Errors::MissingParamError,
-            "missing params: #{missing_params.join(', ')}"
-        end
-
-        phrase = lookup_phrase(
-          repo_name, params[:key], params[:meta_key], params[:commit_id]
-        )
-
-        if phrase
-          params = Translation
-            .extract_params_from(params)
-            .merge(phrase_id: phrase.id)
-
-          find_params = params.dup
-          find_params.delete(:translation)
-
-          translations = Translation.select do |entry|
-            param_matches = find_params.map do |(key, value)|
-              entry.send(key) == value
-            end
-            param_matches.all? { |bool| bool }
-          end
-          translations << Translation.create if translations.size == 0
-
-          translations.each do |t|
-            t.merge_attributes(params)
-          end
-
-          nil
-        else
-          raise(
-            Rosette::DataStores::Errors::PhraseNotFoundError,
-            "couldn't find phrase identified by key '#{params[:key]}' and meta key '#{params[:meta_key]}'"
-          )
-        end
-      end
 
       def add_or_update_commit_log(repo_name, commit_id, commit_datetime = nil, status = Rosette::DataStores::PhraseStatus::NOT_SEEN, phrase_count = nil)
         log_entry = CommitLog.find do |entry|
