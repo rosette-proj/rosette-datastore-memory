@@ -115,7 +115,7 @@ module Rosette
               branch_name == nil || entry.branch_name == branch_name
           end.each(&blk)
         else
-          to_enum(__method__, repo_name, status)
+          to_enum(__method__, repo_name, status, branch_name)
         end
       end
 
