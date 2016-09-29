@@ -56,6 +56,10 @@ module Rosette
             send("#{key}=", value)
           end
         end
+
+        def respond_to?(method, include_all = false)
+          attributes.include?(method)
+        end
       end
 
     end

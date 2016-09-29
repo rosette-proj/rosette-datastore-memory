@@ -18,6 +18,10 @@ module Rosette
           end
         end
 
+        def phrase_count
+          attributes[:phrase_count] || 0
+        end
+
         def status=(new_status)
           super
 
